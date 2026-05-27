@@ -24,7 +24,7 @@ Open Audio Studio delivers the functionality of **Hugging Face AutoTrain + Weigh
 
 ---
 
-## 📊 Phase 10 — Advanced Research & Visualization Suite
+## 📊 Advanced Research & Visualization Suite
 
 Open Audio Studio includes three high-fidelity visual dashboards to aid speech researchers in diagnosing schedules, spectral compression losses, and layer connections:
 

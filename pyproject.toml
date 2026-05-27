@@ -1,0 +1,40 @@
+[project]
+name = "open-audio-studio"
+version = "0.1.0"
+description = "UI-driven studio for fine-tuning ASR, LLM, TTS, and S2S models"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".history", ".venv", "**/__pycache__"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's standard dependency-injection pattern uses these as call-in-default;
+# treating them as immutable so B008 stops misfiring on every endpoint.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.File",
+    "fastapi.Query",
+    "fastapi.Body",
+    "fastapi.Path",
+    "fastapi.Header",
+    "fastapi.Form",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "packages", "apps"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+exclude = ['^\.history/', '^\.venv/']

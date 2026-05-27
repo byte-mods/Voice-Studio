@@ -1,0 +1,12 @@
+{
+  "name": "open-audio-studio",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["apps/*"],
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "dev": "pnpm --filter @oas/web dev",
+    "build": "pnpm --filter @oas/web build",
+    "lint": "pnpm -r lint"
+  }
+}

@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oas-server"
+version = "0.1.0"
+description = "Open Audio Studio FastAPI backend"
+requires-python = ">=3.11"
+dependencies = [
+  "oas-core",
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.29",
+  "python-multipart>=0.0.9",
+  "websockets>=12.0",
+  "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+hf = [
+  "datasets>=2.20",
+  "soundfile>=0.12",
+  "librosa>=0.10",
+  "huggingface_hub>=0.24",
+]
+asr = [
+  "torch>=2.3",
+  "transformers>=4.44",
+  "peft>=0.12",
+  "accelerate>=0.34",
+  "evaluate>=0.4",
+  "jiwer>=3.0",
+  "soundfile>=0.12",
+  "librosa>=0.10",
+  "faster-whisper>=1.0",
+  "silero-vad>=5.0",
+]
+tts = [
+  "torch>=2.3",
+  "soundfile>=0.12",
+  "librosa>=0.10",
+  "piper-train>=1.0",
+  "onnxruntime>=1.18",
+]
+llm = [
+  "torch>=2.3",
+  "transformers>=4.44",
+  "peft>=0.12",
+  "accelerate>=0.34",
+  "trl>=0.10",
+  "datasets>=2.20",
+  "bitsandbytes>=0.43; platform_system!='Darwin'",
+]
+s2s = [
+  "torch>=2.3",
+  "transformers>=4.44",
+  "soundfile>=0.12",
+  "numpy>=1.26",
+  "faster-whisper>=1.0",
+  "piper-tts>=1.2",
+]
+
+[project.scripts]
+oas-server = "oas_server.main:run"
+
+[tool.setuptools.packages.find]
+include = ["oas_server*"]

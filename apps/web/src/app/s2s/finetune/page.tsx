@@ -22,6 +22,8 @@ const BASE_MODELS = [
   "Qwen/Qwen2.5-Omni-3B",
   "fixie-ai/ultravox-v0_4-llama-3_1-8b",
   "THUDM/glm-4-voice-9b",
+  "moshi-causal-audio-lm",
+  "meta-llama/Llama-Omni-3.1-8B",
 ];
 
 export default function S2SFineTune() {
@@ -40,6 +42,7 @@ export default function S2SFineTune() {
   const [form, setForm] = useState({
     version_id: "",
     base_model: BASE_MODELS[0],
+    custom_base_model: "",
     epochs: 1,
     batch_size: 1,
     grad_accum: 8,
@@ -109,7 +112,7 @@ export default function S2SFineTune() {
 
       const config: Record<string, unknown> = {
         dataset_version_id: versionId,
-        base_model: form.base_model,
+        base_model: form.custom_base_model.trim() || form.base_model,
         duplex_mode: form.duplex_mode,
         preserve_voice: form.preserve_voice,
         training: {
@@ -221,6 +224,16 @@ export default function S2SFineTune() {
                   {BASE_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               </Field>
+
+              <Field label="Or manual Hugging Face ID / local path (overrides dropdown)">
+                <input
+                  className="input"
+                  placeholder="e.g. meta-llama/Llama-Omni-3.1-8B or /path/to/local/model"
+                  value={form.custom_base_model}
+                  onChange={(e) => setForm({ ...form, custom_base_model: e.target.value })}
+                />
+              </Field>
+
               <Row>
                 <Field label="LoRA rank (r)">
                   <input type="number" min={1} className="input" value={form.lora_r} onChange={(e) => setForm({ ...form, lora_r: Number(e.target.value) })} />
@@ -230,6 +243,19 @@ export default function S2SFineTune() {
                 </Field>
                 <div />
               </Row>
+
+              <div className="mt-4 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-lg text-xs">
+                <span className="font-bold text-cyan-400 block mb-1">🏗️ Build Architectures from Scratch</span>
+                <p className="text-muted leading-relaxed mb-2">
+                  Want to construct a completely new custom Speech-to-Speech or duplex Audio-LM block from scratch?
+                </p>
+                <a
+                  href="/lab"
+                  className="inline-block px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/35 hover:bg-cyan-500/20 text-cyan-300 font-semibold rounded text-[11px] transition-all"
+                >
+                  Go to Architecture Lab →
+                </a>
+              </div>
             </Card>
 
             {/* Advanced Speech-LM Duplex & style preservation panel */}

@@ -41,6 +41,7 @@ export default function LLMStudio() {
   const [form, setForm] = useState({
     version_id: "",
     base_model: BASE_MODELS[0],
+    custom_base_model: "",
     epochs: 3,
     batch_size: 4,
     grad_accum: 4,
@@ -94,7 +95,7 @@ export default function LLMStudio() {
 
       const config: Record<string, unknown> = {
         dataset_version_id: versionId,
-        base_model: form.base_model,
+        base_model: form.custom_base_model.trim() || form.base_model,
         training: {
           epochs: form.epochs,
           batch_size: form.batch_size,
@@ -180,6 +181,15 @@ export default function LLMStudio() {
                 {BASE_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
               </select>
             </Field>
+
+            <Field label="Or manual Hugging Face ID / local path (overrides dropdown)">
+              <input
+                className="input"
+                placeholder="e.g. meta-llama/Llama-3.2-3B-Instruct or /path/to/local/model"
+                value={form.custom_base_model}
+                onChange={(e) => setForm({ ...form, custom_base_model: e.target.value })}
+              />
+            </Field>
             <Row>
               <Field label="Quantization">
                 <select className="input" value={form.quantization} onChange={(e) => setForm({ ...form, quantization: e.target.value as "none" | "4bit" | "8bit" })}>
@@ -195,6 +205,19 @@ export default function LLMStudio() {
                 <input type="number" min={1} className="input" value={form.lora_alpha} onChange={(e) => setForm({ ...form, lora_alpha: Number(e.target.value) })} />
               </Field>
             </Row>
+
+            <div className="mt-4 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-lg text-xs">
+              <span className="font-bold text-cyan-400 block mb-1">🏗️ Build Architectures from Scratch</span>
+              <p className="text-muted leading-relaxed mb-2">
+                Want to construct a completely new custom causal LM or SwiGLU Attention layer using Triton, CUDA, or custom JAX blocks?
+              </p>
+              <a
+                href="/lab"
+                className="inline-block px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/35 hover:bg-cyan-500/20 text-cyan-300 font-semibold rounded text-[11px] transition-all"
+              >
+                Go to Architecture Lab →
+              </a>
+            </div>
           </Card>
 
           <Card>

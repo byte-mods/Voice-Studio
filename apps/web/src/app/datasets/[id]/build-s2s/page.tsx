@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardTitle } from "@/components/Card";
 import { VersionPicker, appendSample } from "@/components/VersionPicker";
 import { LANGUAGES } from "@/lib/languages";
+import { PromptDictionary } from "@/components/PromptDictionary";
 
 type Role = "system" | "user" | "assistant" | "tool";
 
@@ -32,6 +33,14 @@ export default function S2SBuilder({ params }: { params: any }) {
   const [err, setErr] = useState<string | null>(null);
   const [recording, setRecording] = useState<Role | null>(null);
   const [recordingIndex, setRecordingIndex] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"tips" | "dict">("dict");
+
+  function handleSelectPrompt(text: string, _emo: string) {
+    setTurns((cur) => [
+      ...cur,
+      { role: nextRole, text }
+    ]);
+  }
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -348,16 +357,51 @@ export default function S2SBuilder({ params }: { params: any }) {
           </div>
         </div>
 
-        <Card>
-          <CardTitle>Multimodal S2S Builder</CardTitle>
-          <ul className="text-xs text-muted list-disc list-inside space-y-2 leading-relaxed">
-            <li><strong>Audio Recording</strong>: Each click records from your mic. Default alternates user ↔ assistant.</li>
-            <li><strong>System Instructions</strong>: Add system prompts to instruct Qwen-Omni on style, personality, or RAG constraints.</li>
-            <li><strong>JSON Tool Schemas</strong>: Declare tools available to the model (in standard JSON-Schema format).</li>
-            <li><strong>API/Tool Simulators</strong>: Use <code className="font-mono text-accent">system</code> or <code className="font-mono text-accent">tool</code> roles to feed retrieved search results, weather response documents, or vector embeddings back to the turn sequence!</li>
-            <li>One <em>Save conversation</em> = one complete S2SSample row in the version manifest.</li>
-          </ul>
-        </Card>
+        <div className="space-y-3">
+          <Card>
+            <div className="flex bg-card/60 p-1 rounded-md gap-1 mb-3 border border-border">
+              <button
+                type="button"
+                onClick={() => setActiveTab("dict")}
+                className={`flex-1 text-center py-1 rounded text-xs font-semibold transition ${
+                  activeTab === "dict" ? "bg-accent text-white" : "text-muted hover:text-white"
+                }`}
+              >
+                📋 Prompt Dictionary
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("tips")}
+                className={`flex-1 text-center py-1 rounded text-xs font-semibold transition ${
+                  activeTab === "tips" ? "bg-accent text-white" : "text-muted hover:text-white"
+                }`}
+              >
+                📖 Guidelines
+              </button>
+            </div>
+
+            {activeTab === "tips" ? (
+              <>
+                <CardTitle>Multimodal S2S Builder</CardTitle>
+                <ul className="text-xs text-muted list-disc list-inside space-y-2 leading-relaxed">
+                  <li><strong>Audio Recording</strong>: Each click records from your mic. Default alternates user ↔ assistant.</li>
+                  <li><strong>System Instructions</strong>: Add system prompts to instruct Qwen-Omni on style, personality, or RAG constraints.</li>
+                  <li><strong>JSON Tool Schemas</strong>: Declare tools available to the model (in standard JSON-Schema format).</li>
+                  <li><strong>API/Tool Simulators</strong>: Use <code className="font-mono text-accent">system</code> or <code className="font-mono text-accent">tool</code> roles to feed retrieved search results, weather response documents, or vector embeddings back to the turn sequence!</li>
+                  <li>One <em>Save conversation</em> = one complete S2SSample row in the version manifest.</li>
+                </ul>
+              </>
+            ) : (
+              <>
+                <CardTitle>Prompt Sheet</CardTitle>
+                <p className="text-xs text-muted mb-3">
+                  Click any sentence to instantly append a turn in the dialogue flow.
+                </p>
+                <PromptDictionary onSelectSentence={handleSelectPrompt} />
+              </>
+            )}
+          </Card>
+        </div>
       </div>
 
       <style jsx global>{`

@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardTitle } from "@/components/Card";
 import { VersionPicker, appendSample } from "@/components/VersionPicker";
 import { LANGUAGES } from "@/lib/languages";
+import { PromptDictionary } from "@/components/PromptDictionary";
 
 type Role = "system" | "user" | "assistant" | "tool";
 
@@ -26,6 +27,21 @@ export default function LLMBuilder({ params }: { params: any }) {
   const [savedCount, setSavedCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"tips" | "dict">("dict");
+
+  function handleSelectPrompt(text: string, _emo: string) {
+    setTurns((cur) => {
+      if (cur.length === 0) {
+        return [{ role: "user", text }];
+      }
+      const last = cur[cur.length - 1];
+      if (!last.text.trim()) {
+        return cur.map((t, idx) => (idx === cur.length - 1 ? { ...t, text } : t));
+      }
+      const nextRole: Role = last.role === "user" ? "assistant" : "user";
+      return [...cur, { role: nextRole, text }];
+    });
+  }
 
   function updateTurn(i: number, patch: Partial<Turn>) {
     setTurns((cur) => cur.map((t, j) => (j === i ? { ...t, ...patch } : t)));
@@ -193,11 +209,56 @@ export default function LLMBuilder({ params }: { params: any }) {
           </div>
         </div>
 
-        <SyntheticPanel
-          versionId={versionId}
-          systemPrompt={systemPrompt}
-          onAppended={() => setSavedCount((n) => n + 1)}
-        />
+        <div className="space-y-4">
+          <Card>
+            <div className="flex bg-card/60 p-1 rounded-md gap-1 mb-3 border border-border">
+              <button
+                type="button"
+                onClick={() => setActiveTab("dict")}
+                className={`flex-1 text-center py-1 rounded text-xs font-semibold transition ${
+                  activeTab === "dict" ? "bg-accent text-white" : "text-muted hover:text-white"
+                }`}
+              >
+                📋 Prompt Dictionary
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("tips")}
+                className={`flex-1 text-center py-1 rounded text-xs font-semibold transition ${
+                  activeTab === "tips" ? "bg-accent text-white" : "text-muted hover:text-white"
+                }`}
+              >
+                📖 Guidelines
+              </button>
+            </div>
+
+            {activeTab === "tips" ? (
+              <>
+                <CardTitle>LLM Dataset Builder</CardTitle>
+                <ul className="text-xs text-muted list-disc list-inside space-y-2 leading-relaxed">
+                  <li><strong>Manual Editing</strong>: Type user questions and expected assistant answers directly.</li>
+                  <li><strong>System Prompt</strong>: Dictate the assistant persona or behavior (e.g. helpful customer service agent).</li>
+                  <li><strong>API Integration</strong>: Declare schemas of tools that the model can choose to call.</li>
+                  <li><strong>Synthetic Generator</strong>: Use a registered LLM model on the right to bootstrap synthetic dataset samples.</li>
+                </ul>
+              </>
+            ) : (
+              <>
+                <CardTitle>Prompt Sheet</CardTitle>
+                <p className="text-xs text-muted mb-3">
+                  Click any sentence to instantly append or fill active dialogue turns.
+                </p>
+                <PromptDictionary onSelectSentence={handleSelectPrompt} />
+              </>
+            )}
+          </Card>
+
+          <SyntheticPanel
+            versionId={versionId}
+            systemPrompt={systemPrompt}
+            onAppended={() => setSavedCount((n) => n + 1)}
+          />
+        </div>
       </div>
 
       <style jsx global>{`

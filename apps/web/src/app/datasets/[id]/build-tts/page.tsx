@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardTitle } from "@/components/Card";
 import { VersionPicker, appendSample } from "@/components/VersionPicker";
 import { LANGUAGES } from "@/lib/languages";
+import { PromptDictionary } from "@/components/PromptDictionary";
 
 type LineRow = {
   text: string;
@@ -34,6 +35,21 @@ export default function TTSBuilder({ params }: { params: any }) {
   const [lines, setLines] = useState<LineRow[]>([{ text: "", status: "pending" }]);
   const [savedCount, setSavedCount] = useState(0);
   const [err, setErr] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"tips" | "dict">("dict");
+
+  function handleSelectPrompt(text: string, emo: string) {
+    setEmotion(emo);
+    setLines((cur) => {
+      if (cur.length === 0) {
+        return [{ text, status: "pending" }];
+      }
+      const last = cur[cur.length - 1];
+      if (!last.text.trim()) {
+        return cur.map((l, idx) => (idx === cur.length - 1 ? { ...l, text } : l));
+      }
+      return [...cur, { text, status: "pending" }];
+    });
+  }
 
   function updateLine(i: number, patch: Partial<LineRow>) {
     setLines((cur) => cur.map((l, j) => (j === i ? { ...l, ...patch } : l)));
@@ -206,15 +222,50 @@ export default function TTSBuilder({ params }: { params: any }) {
           <p className="text-xs text-muted">{savedCount} sample(s) appended this session</p>
         </div>
 
-        <Card>
-          <CardTitle>Tips</CardTitle>
-          <ul className="text-sm text-muted list-disc list-inside space-y-1">
-            <li>Use the same <span className="font-mono">speaker_id</span> across rows for a single voice.</li>
-            <li>Consent is enforced when fine-tuning a cloning voice.</li>
-            <li>Audio is resampled to the model&apos;s rate at training time; any sane format works.</li>
-            <li>Aim for 100+ clean clips per voice for a usable Piper model.</li>
-          </ul>
-        </Card>
+        <div className="space-y-3">
+          <Card>
+            <div className="flex bg-card/60 p-1 rounded-md gap-1 mb-3 border border-border">
+              <button
+                type="button"
+                onClick={() => setActiveTab("dict")}
+                className={`flex-1 text-center py-1 rounded text-xs font-semibold transition ${
+                  activeTab === "dict" ? "bg-accent text-white" : "text-muted hover:text-white"
+                }`}
+              >
+                📋 Prompt Dictionary
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("tips")}
+                className={`flex-1 text-center py-1 rounded text-xs font-semibold transition ${
+                  activeTab === "tips" ? "bg-accent text-white" : "text-muted hover:text-white"
+                }`}
+              >
+                📖 Guidelines
+              </button>
+            </div>
+
+            {activeTab === "tips" ? (
+              <>
+                <CardTitle>Intake Tips</CardTitle>
+                <ul className="text-sm text-muted list-disc list-inside space-y-1">
+                  <li>Use the same <span className="font-mono">speaker_id</span> across rows for a single voice.</li>
+                  <li>Consent is enforced when fine-tuning a cloning voice.</li>
+                  <li>Audio is resampled to the model&apos;s rate at training time; any sane format works.</li>
+                  <li>Aim for 100+ clean clips per voice for a usable Piper model.</li>
+                </ul>
+              </>
+            ) : (
+              <>
+                <CardTitle>Prompt Sheet</CardTitle>
+                <p className="text-xs text-muted mb-3">
+                  Click any sentence to instantly populate your line text and emotional suggestion.
+                </p>
+                <PromptDictionary onSelectSentence={handleSelectPrompt} />
+              </>
+            )}
+          </Card>
+        </div>
       </div>
 
       <style jsx global>{`

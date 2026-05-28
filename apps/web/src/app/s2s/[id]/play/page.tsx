@@ -23,8 +23,9 @@ async function jget<T>(p: string): Promise<T> {
   return r.json();
 }
 
-export default function S2SPlay({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function S2SPlay({ params }: { params: any }) {
+  const resolvedParams = params && typeof params.then === "function" ? use(params) : params;
+  const { id } = resolvedParams;
   const { data: pipeline } = useSWR<Pipeline>(["pipeline", id], () => jget<Pipeline>(`/s2s/pipelines/${id}`));
 
   return (
@@ -112,7 +113,14 @@ function Playground({ pipelineId, pipeline }: { pipelineId: string; pipeline: Pi
   const connect = useCallback(async () => {
     setError(null);
     setStatus("connecting");
-    const apiBase = process.env.NEXT_PUBLIC_API_BASE || `${location.protocol}//${location.host}`;
+    let apiBase = process.env.NEXT_PUBLIC_API_BASE || "";
+    if (!apiBase && typeof window !== "undefined") {
+      if (window.location.port === "3000") {
+        apiBase = `${window.location.protocol}//${window.location.hostname}:8000`;
+      } else {
+        apiBase = `${window.location.protocol}//${window.location.host}`;
+      }
+    }
     const wsBase = apiBase.replace(/^http/, "ws");
     const ws = new WebSocket(`${wsBase}/s2s/sessions/${pipelineId}`);
     ws.binaryType = "arraybuffer";

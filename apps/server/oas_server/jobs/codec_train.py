@@ -54,6 +54,9 @@ def codec_train_handler(ctx: JobContext) -> dict[str, Any]:
     audio_uris = _load_audio_splits(manifest_root)
     ctx.log(f"found {len(audio_uris)} audio samples to compile")
 
+    if base_model.startswith("file://"):
+        base_model = base_model[7:]
+
     # High-fidelity simulated training loop for neural codecs
     ctx.log(f"initializing {base_model} quantizer models on device=cuda")
     ctx.log(f"downsampling all audio waveforms sequentially to target {target_sr}Hz")

@@ -7,6 +7,7 @@ import { api, type Dataset, type Project } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/Card";
 import { relativeTime } from "@/lib/utils";
+import { LANGUAGES } from "@/lib/languages";
 
 export default function DatasetsPage() {
   const projects = useSWR("projects", () => api.projects.list());
@@ -195,12 +196,28 @@ function HFImportModal({
         </Row>
 
         <Row>
-          <Field label="Language">
-            <input className="input" value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })} />
+          <Field label="Preset Language">
+            <select
+              className="input"
+              value={form.language}
+              onChange={(e) => setForm({ ...form, language: e.target.value })}
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label} ({l.value})
+                </option>
+              ))}
+            </select>
           </Field>
+          <Field label="Or Custom ISO Code">
+            <input className="input" placeholder="e.g. hi-IN, mr" value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })} />
+          </Field>
+        </Row>
+        <Row>
           <Field label="License (SPDX)">
             <input className="input" value={form.license_spdx} onChange={(e) => setForm({ ...form, license_spdx: e.target.value })} />
           </Field>
+          <div />
         </Row>
 
         <div className="text-xs uppercase tracking-wide text-muted pt-2">Field mapping</div>

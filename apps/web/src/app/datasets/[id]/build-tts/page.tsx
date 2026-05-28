@@ -5,6 +5,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardTitle } from "@/components/Card";
 import { VersionPicker, appendSample } from "@/components/VersionPicker";
+import { LANGUAGES } from "@/lib/languages";
 
 type LineRow = {
   text: string;
@@ -15,8 +16,9 @@ type LineRow = {
   error?: string;
 };
 
-export default function TTSBuilder({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function TTSBuilder({ params }: { params: any }) {
+  const resolvedParams = params && typeof params.then === "function" ? use(params) : params;
+  const { id } = resolvedParams;
   const [versionId, setVersionId] = useState<string | null>(null);
   const [speakerId, setSpeakerId] = useState("");
   const [language, setLanguage] = useState("en");
@@ -132,8 +134,21 @@ export default function TTSBuilder({ params }: { params: Promise<{ id: string }>
               <Field label="Speaker id">
                 <input className="input" value={speakerId} onChange={(e) => setSpeakerId(e.target.value)} required />
               </Field>
-              <Field label="Language">
-                <input className="input" value={language} onChange={(e) => setLanguage(e.target.value)} />
+              <Field label="Preset Language">
+                <select
+                  className="input"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l.value} value={l.value}>
+                      {l.label} ({l.value})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Or Custom ISO Code">
+                <input className="input" placeholder="e.g. hi-IN, mr" value={language} onChange={(e) => setLanguage(e.target.value)} />
               </Field>
               <Field label="License (SPDX)">
                 <input className="input" value={licenseSpdx} onChange={(e) => setLicenseSpdx(e.target.value)} />
@@ -144,7 +159,6 @@ export default function TTSBuilder({ params }: { params: Promise<{ id: string }>
               <Field label="Emotion">
                 <input className="input" value={emotion} onChange={(e) => setEmotion(e.target.value)} />
               </Field>
-              <div />
             </div>
           </Card>
 

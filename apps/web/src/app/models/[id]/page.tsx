@@ -39,8 +39,9 @@ async function jget<T>(p: string): Promise<T> {
   return r.json();
 }
 
-export default function ModelDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function ModelDetail({ params }: { params: any }) {
+  const resolvedParams = params && typeof params.then === "function" ? use(params) : params;
+  const { id } = resolvedParams;
   const model = useSWR<Model>(["model", id], () => jget<Model>(`/models/${id}`));
   const versions = useSWR<Version[]>(["versions", id], () => jget<Version[]>(`/models/${id}/versions`));
   const [activeVid, setActiveVid] = useState<string | null>(null);

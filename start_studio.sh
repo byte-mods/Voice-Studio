@@ -66,7 +66,7 @@ fi
 
 echo -e "${INFO}• Installing Next.js frontend dependencies...${RESET}"
 cd apps/web
-$PM_CMD install
+$PM_CMD install --ignore-scripts
 cd - >/dev/null
 
 echo -e "${SUCCESS}✓ Frontend web package dependencies successfully synced.${RESET}"

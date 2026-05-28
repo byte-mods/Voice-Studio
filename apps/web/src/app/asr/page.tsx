@@ -28,6 +28,10 @@ const BASE_MODELS = [
   "openai/whisper-large-v3",
   "distil-whisper/distil-small.en",
   "distil-whisper/distil-large-v3",
+  "nvidia/canary-1b",
+  "nvidia/parakeet-ctc-1.1b",
+  "facebook/wav2vec2-large-xlsr-53",
+  "facebook/mms-1b-all",
 ];
 
 export default function ASRStudio() {
@@ -47,6 +51,7 @@ export default function ASRStudio() {
   const [form, setForm] = useState({
     version_id: "",
     base_model: "openai/whisper-small",
+    custom_base_model: "",
     mode: "lora" as "lora" | "full",
     epochs: 3,
     batch_size: 8,
@@ -72,6 +77,24 @@ export default function ASRStudio() {
   const dataset = useMemo(
     () => datasets.data?.find((d) => d.id === datasetId),
     [datasets.data, datasetId],
+  );
+
+  const registeredModels = useSWR(
+    dataset ? ["registered-models-asr", dataset.project_id] : null,
+    async ([, pid]) => {
+      const list = await api.models.list(pid as string, "asr");
+      const modelsWithVersions = await Promise.all(
+        list.map(async (m) => {
+          try {
+            const versions = await api.models.listVersions(m.id);
+            return { ...m, versions };
+          } catch {
+            return { ...m, versions: [] };
+          }
+        })
+      );
+      return modelsWithVersions;
+    }
   );
 
   async function submit(e: React.FormEvent) {
@@ -101,7 +124,7 @@ export default function ASRStudio() {
 
       const config: Record<string, unknown> = {
         dataset_version_id: versionId,
-        base_model: form.base_model,
+        base_model: form.custom_base_model.trim() || form.base_model,
         training: {
           mode: form.mode,
           epochs: form.epochs,
@@ -202,8 +225,25 @@ export default function ASRStudio() {
                 {BASE_MODELS.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
+                {registeredModels.data?.map((m) =>
+                  m.versions.map((v: any) => (
+                    <option key={v.id} value={v.artifact_uri}>
+                      [Local Registry] {m.name} (v{v.version})
+                    </option>
+                  ))
+                )}
               </select>
             </Field>
+
+            <Field label="Or manual Hugging Face ID / local path (overrides dropdown)">
+              <input
+                className="input"
+                placeholder="e.g. nvidia/canary-1b or /path/to/local/model"
+                value={form.custom_base_model}
+                onChange={(e) => setForm({ ...form, custom_base_model: e.target.value })}
+              />
+            </Field>
+
             <Field label="Training mode">
               <select
                 className="input"
@@ -211,9 +251,22 @@ export default function ASRStudio() {
                 onChange={(e) => setForm({ ...form, mode: e.target.value as "lora" | "full" })}
               >
                 <option value="lora">LoRA (recommended)</option>
-                <option value="full">Full fine-tune</option>
+                <option value="full">Full fine-tune / pre-train</option>
               </select>
             </Field>
+
+            <div className="mt-4 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-lg text-xs">
+              <span className="font-bold text-cyan-400 block mb-1">🏗️ Build Architectures from Scratch</span>
+              <p className="text-muted leading-relaxed mb-2">
+                Want to construct a completely new ASR architecture using Triton, CUDA, or custom JAX blocks?
+              </p>
+              <a
+                href="/lab"
+                className="inline-block px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/35 hover:bg-cyan-500/20 text-cyan-300 font-semibold rounded text-[11px] transition-all"
+              >
+                Go to Architecture Lab →
+              </a>
+            </div>
           </Card>
 
           <Card>

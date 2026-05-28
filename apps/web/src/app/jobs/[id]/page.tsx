@@ -38,8 +38,9 @@ async function jget<T>(path: string): Promise<T> {
   return r.json();
 }
 
-export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function JobDetailPage({ params }: { params: any }) {
+  const resolvedParams = params && typeof params.then === "function" ? use(params) : params;
+  const { id } = resolvedParams;
   const { data, isLoading, mutate } = useSWR<Job>(["job", id], () => jget<Job>(`/jobs/${id}`), {
     refreshInterval: (latest) =>
       latest && ["succeeded", "failed", "canceled"].includes(latest.status) ? 0 : 1500,

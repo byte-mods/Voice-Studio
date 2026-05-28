@@ -15,6 +15,16 @@ async function jget<T>(p: string): Promise<T> {
   return r.json();
 }
 
+const BASE_VOICES = [
+  "coqui/XTTS-v2",
+  "bark/suno",
+  "vits/en-ljspeech",
+  "flow-matching/tts-synthesizer",
+  "elevenlabs/multilingual-v2",
+  "en_US-lessac-medium",
+  "en_US-joe-medium",
+];
+
 export default function TTSStudio() {
   const router = useRouter();
   const datasets = useSWR("datasets-tts", () => api.datasets.list(undefined, "tts"));
@@ -34,6 +44,7 @@ export default function TTSStudio() {
     batch_size: 32,
     checkpoint_epochs: 50,
     base_voice: "",
+    select_base_voice: "coqui/XTTS-v2",
     publish_model_slug: "",
     publish_version: "0.1.0",
   });
@@ -105,7 +116,7 @@ export default function TTSStudio() {
         lexicon: lexiconDict,
         registry: modelId ? { model_id: modelId, version: form.publish_version } : undefined,
       };
-      if (form.base_voice) config.base_voice = form.base_voice;
+      config.base_voice = form.base_voice.trim() || form.select_base_voice;
 
       const job = await api.jobs.submit({
         project_id: dataset.project_id,
@@ -182,9 +193,28 @@ export default function TTSStudio() {
                 </select>
               </Field>
             </Row>
-            <Field label="Warm-start from base voice (optional)">
-              <input className="input" placeholder="en_US-lessac-medium" value={form.base_voice} onChange={(e) => setForm({ ...form, base_voice: e.target.value })} />
+            <Field label="Base model voice family">
+              <select className="input" value={form.select_base_voice} onChange={(e) => setForm({ ...form, select_base_voice: e.target.value })}>
+                {BASE_VOICES.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
             </Field>
+
+            <Field label="Or manual Hugging Face ID / local path (overrides dropdown)">
+              <input className="input" placeholder="e.g. coqui/XTTS-v2 or /path/to/local/voice" value={form.base_voice} onChange={(e) => setForm({ ...form, base_voice: e.target.value })} />
+            </Field>
+
+            <div className="mt-4 p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-lg text-xs">
+              <span className="font-bold text-cyan-400 block mb-1">🏗️ Build Architectures from Scratch</span>
+              <p className="text-muted leading-relaxed mb-2">
+                Want to construct a completely new custom Flow-Matching TTS or vocoder block from scratch?
+              </p>
+              <a
+                href="/lab"
+                className="inline-block px-2.5 py-1 bg-cyan-500/10 border border-cyan-500/35 hover:bg-cyan-500/20 text-cyan-300 font-semibold rounded text-[11px] transition-all"
+              >
+                Go to Architecture Lab →
+              </a>
+            </div>
           </Card>
 
           <Card>

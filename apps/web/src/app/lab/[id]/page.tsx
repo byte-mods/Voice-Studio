@@ -236,8 +236,9 @@ async function jget<T>(p: string): Promise<T> {
   return r.json();
 }
 
-export default function KernelDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function KernelDetail({ params }: { params: any }) {
+  const resolvedParams = params && typeof params.then === "function" ? use(params) : params;
+  const { id } = resolvedParams;
   const router = useRouter();
   const { data, mutate } = useSWR<Kernel>(["kernel", id], () => jget<Kernel>(`/kernels/${id}`));
 

@@ -203,6 +203,9 @@ def whisper_finetune_handler(ctx: JobContext) -> dict[str, Any]:
         WhisperProcessor,
     )
 
+    if base_model.startswith("file://"):
+        base_model = base_model[7:]
+
     ctx.log(f"loading processor + model: {base_model}")
     processor = WhisperProcessor.from_pretrained(base_model, language=language, task=task)
     model = WhisperForConditionalGeneration.from_pretrained(base_model)

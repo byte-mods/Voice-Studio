@@ -5,16 +5,20 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardTitle } from "@/components/Card";
 import { VersionPicker, appendSample } from "@/components/VersionPicker";
+import { LANGUAGES } from "@/lib/languages";
 
 type Role = "system" | "user" | "assistant" | "tool";
 
 type Turn = { role: Role; text: string };
 
-export default function LLMBuilder({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function LLMBuilder({ params }: { params: any }) {
+  const resolvedParams = params && typeof params.then === "function" ? use(params) : params;
+  const { id } = resolvedParams;
   const [versionId, setVersionId] = useState<string | null>(null);
   const [systemPrompt, setSystemPrompt] = useState("");
   const [toolsSchema, setToolsSchema] = useState("[]");
+  const [language, setLanguage] = useState("en-US");
+  const [licenseSpdx, setLicenseSpdx] = useState("CC-BY-4.0");
   const [turns, setTurns] = useState<Turn[]>([
     { role: "user", text: "" },
     { role: "assistant", text: "" },
@@ -49,8 +53,8 @@ export default function LLMBuilder({ params }: { params: Promise<{ id: string }>
       }
       const sample = {
         modality: "llm",
-        license: { spdx: "CC-BY-4.0" },
-        language: "en",
+        license: { spdx: licenseSpdx },
+        language: language,
         system_prompt: systemPrompt || null,
         tools_schema: tools,
         turns: turns
@@ -86,6 +90,31 @@ export default function LLMBuilder({ params }: { params: Promise<{ id: string }>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="md:col-span-2 space-y-3">
           <VersionPicker datasetId={id} value={versionId} onChange={setVersionId} />
+
+          <Card>
+            <CardTitle>Dataset metadata</CardTitle>
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="Preset Language">
+                <select
+                  className="input"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l.value} value={l.value}>
+                      {l.label} ({l.value})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Or Custom ISO Code">
+                <input className="input" placeholder="e.g. hi-IN, mr" value={language} onChange={(e) => setLanguage(e.target.value)} />
+              </Field>
+              <Field label="License (SPDX)">
+                <input className="input" value={licenseSpdx} onChange={(e) => setLicenseSpdx(e.target.value)} />
+              </Field>
+            </div>
+          </Card>
 
           <Card>
             <CardTitle>System prompt</CardTitle>
@@ -277,5 +306,14 @@ function SyntheticPanel({
         </pre>
       )}
     </Card>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs text-muted mb-1">{label}</label>
+      {children}
+    </div>
   );
 }

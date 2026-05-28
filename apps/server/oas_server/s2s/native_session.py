@@ -142,6 +142,7 @@ class _AudioLM:
         audio_in: Any,
         sample_rate: int,
         max_new_tokens: int = 200,
+        voice_name: str | None = None,
     ) -> tuple[str, np.ndarray | None, int | None]:
         """Generate a reply that includes synthesized audio when supported.
 
@@ -176,14 +177,23 @@ class _AudioLM:
             # ignore them. We use a try/except to handle both shapes.
             gen_kwargs.update({"return_audio": True, "output_audio": True})
 
+        if voice_name:
+            gen_kwargs["spk"] = voice_name
+            gen_kwargs["speaker"] = voice_name
+
         with torch.no_grad():
             try:
                 out = self.model.generate(**inputs, **gen_kwargs)
             except TypeError:
-                # Older signatures reject the audio kwargs — retry without.
-                gen_kwargs.pop("return_audio", None)
-                gen_kwargs.pop("output_audio", None)
-                out = self.model.generate(**inputs, **gen_kwargs)
+                # Older signatures or unsupported args — retry removing spk/speaker
+                gen_kwargs.pop("spk", None)
+                gen_kwargs.pop("speaker", None)
+                try:
+                    out = self.model.generate(**inputs, **gen_kwargs)
+                except TypeError:
+                    gen_kwargs.pop("return_audio", None)
+                    gen_kwargs.pop("output_audio", None)
+                    out = self.model.generate(**inputs, **gen_kwargs)
 
         text = self._extract_text(out, inputs)
         audio, sr = self._extract_audio(out)
@@ -273,6 +283,7 @@ class _AudioLM:
         audio: Any,
         sample_rate: int,
         max_new_tokens: int = 200,
+        voice_name: str | None = None,
     ) -> str:
         """Send a multimodal turn (audio + prior text history) and return text."""
         import torch
@@ -317,14 +328,29 @@ class _AudioLM:
             )
             inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
+        gen_kwargs: dict[str, Any] = dict(
+            max_new_tokens=max_new_tokens,
+            do_sample=True,
+            temperature=0.7,
+            top_p=0.9,
+        )
+        if voice_name:
+            gen_kwargs["spk"] = voice_name
+            gen_kwargs["speaker"] = voice_name
+
         with torch.no_grad():
-            out = self.model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                do_sample=True,
-                temperature=0.7,
-                top_p=0.9,
-            )
+            try:
+                out = self.model.generate(
+                    **inputs,
+                    **gen_kwargs,
+                )
+            except TypeError:
+                gen_kwargs.pop("spk", None)
+                gen_kwargs.pop("speaker", None)
+                out = self.model.generate(
+                    **inputs,
+                    **gen_kwargs,
+                )
 
         input_len = inputs["input_ids"].shape[1] if "input_ids" in inputs else 0
         gen = out[0, input_len:] if input_len else out[0]
@@ -334,15 +360,23 @@ class _AudioLM:
 class _FallbackTTS:
     """Optional vocoder for native sessions whose audio-LM only emits text."""
 
-    def __init__(self, uri: str, fmt: str) -> None:
+    def __init__(self, uri: str, fmt: str, voice_name: str | None = None) -> None:
         self._piper = None
         self._hf = None
+        self.voice_name = voice_name
         target_path = uri.removeprefix("file://")
         if fmt == "piper-onnx":
             from piper import PiperVoice
 
             voice_dir = Path(target_path)
-            self._piper = PiperVoice.load(str(next(voice_dir.glob("*.onnx"))))
+            onnx = None
+            if voice_name:
+                matches = list(voice_dir.glob(f"*{voice_name}*.onnx"))
+                if matches:
+                    onnx = matches[0]
+            if not onnx:
+                onnx = next(voice_dir.glob("*.onnx"))
+            self._piper = PiperVoice.load(str(onnx))
         else:
             from transformers import pipeline
 
@@ -361,7 +395,17 @@ class _FallbackTTS:
             return data.astype(np.float32), int(sr)
 
         assert self._hf is not None
-        out = self._hf(text)
+        gen_kwargs = {}
+        if self.voice_name:
+            model_path = str(getattr(self._hf.model, "name_or_path", "")).lower()
+            if "bark" in model_path:
+                gen_kwargs = {"forward_params": {"voice_preset": self.voice_name}}
+            else:
+                gen_kwargs = {"forward_params": {"speaker": self.voice_name}}
+        try:
+            out = self._hf(text, **gen_kwargs)
+        except TypeError:
+            out = self._hf(text)
         audio = np.asarray(out["audio"], dtype=np.float32).squeeze()
         return audio, int(out["sampling_rate"])
 
@@ -430,7 +474,11 @@ class NativeS2SSession:
             self._audio_lm = _AudioLM(self.cfg.audio_lm_uri, self.cfg.audio_lm_format)
         if self._tts is None and self.cfg.tts_uri is not None:
             log.info("loading fallback TTS: %s", self.cfg.tts_uri)
-            self._tts = _FallbackTTS(self.cfg.tts_uri, self.cfg.tts_format or "hf")
+            self._tts = _FallbackTTS(
+                self.cfg.tts_uri,
+                self.cfg.tts_format or "hf",
+                voice_name=self.cfg.runtime.get("voice_name"),
+            )
 
     async def push_audio(self, chunk: bytes) -> None:
         import numpy as np
@@ -523,6 +571,7 @@ class NativeS2SSession:
                 self._history,
                 audio,
                 CLIENT_SR,
+                voice_name=self.cfg.runtime.get("voice_name"),
             )
             if cancel.is_set():
                 return

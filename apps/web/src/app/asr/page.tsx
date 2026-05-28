@@ -79,6 +79,24 @@ export default function ASRStudio() {
     [datasets.data, datasetId],
   );
 
+  const registeredModels = useSWR(
+    dataset ? ["registered-models-asr", dataset.project_id] : null,
+    async ([, pid]) => {
+      const list = await api.models.list(pid as string, "asr");
+      const modelsWithVersions = await Promise.all(
+        list.map(async (m) => {
+          try {
+            const versions = await api.models.listVersions(m.id);
+            return { ...m, versions };
+          } catch {
+            return { ...m, versions: [] };
+          }
+        })
+      );
+      return modelsWithVersions;
+    }
+  );
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr(null);
@@ -207,6 +225,13 @@ export default function ASRStudio() {
                 {BASE_MODELS.map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
+                {registeredModels.data?.map((m) =>
+                  m.versions.map((v: any) => (
+                    <option key={v.id} value={v.artifact_uri}>
+                      [Local Registry] {m.name} (v{v.version})
+                    </option>
+                  ))
+                )}
               </select>
             </Field>
 

@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Card, CardTitle } from "@/components/Card";
 import { AudioUploader, type UploadResult } from "@/components/AudioUploader";
 import { relativeTime } from "@/lib/utils";
+import { LANGUAGES } from "@/lib/languages";
 
 type DatasetVersion = {
   id: string;
@@ -37,8 +38,9 @@ async function jget<T>(path: string): Promise<T> {
   return r.json();
 }
 
-export default function DatasetDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function DatasetDetailPage({ params }: { params: any }) {
+  const resolvedParams = params && typeof params.then === "function" ? use(params) : params;
+  const { id } = resolvedParams;
   const ds = useSWR<Dataset>(["dataset", id], () => jget<Dataset>(`/datasets/${id}`));
   const versions = useSWR<DatasetVersion[]>(["versions", id], () =>
     jget<DatasetVersion[]>(`/datasets/${id}/versions`)
@@ -137,6 +139,14 @@ export default function DatasetDetailPage({ params }: { params: Promise<{ id: st
                       parentVersion={versions.data.find((v) => v.id === versionId)?.version ?? ""}
                       onDedup={() => versions.mutate()}
                     />
+                    {ds.data?.modality && ["tts", "llm", "s2s"].includes(ds.data.modality) && (
+                      <Link
+                        href={`/datasets/${id}/build-${ds.data.modality}`}
+                        className="mt-3 block w-full text-center rounded-md bg-accent px-2 py-2 text-xs font-semibold text-white hover:bg-accent/90 transition shadow-sm"
+                      >
+                        🛠️ Open {ds.data.modality.toUpperCase()} Builder
+                      </Link>
+                    )}
                   </>
                 )}
               </>
@@ -145,9 +155,21 @@ export default function DatasetDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
         <div className="md:col-span-2">
-          {versionId ? <SamplePreview datasetId={id} versionId={versionId} /> : (
+          {versionId ? (
+            <SamplePreview datasetId={id} versionId={versionId} />
+          ) : (
             <Card>
-              <p className="text-sm text-muted">Select a version to preview samples.</p>
+              {ds.data && ds.data.modality !== "asr" && !versions.data?.length ? (
+                <InitializeVersionSection
+                  datasetId={id}
+                  onCreated={(newVer) => {
+                    versions.mutate();
+                    setActiveVersion(newVer.id);
+                  }}
+                />
+              ) : (
+                <p className="text-sm text-muted">Select a version to preview samples.</p>
+              )}
             </Card>
           )}
         </div>
@@ -155,6 +177,139 @@ export default function DatasetDetailPage({ params }: { params: Promise<{ id: st
     </>
   );
 }
+
+function InitializeVersionSection({
+  datasetId,
+  onCreated,
+}: {
+  datasetId: string;
+  onCreated: (newVersion: DatasetVersion) => void;
+}) {
+  const [version, setVersion] = useState("0.1.0");
+  const [licenseSpdx, setLicenseSpdx] = useState("CC-BY-4.0");
+  const [notes, setNotes] = useState("Initialized via Studio Dashboard");
+  const [submitting, setSubmitting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    if (!/^\d+\.\d+\.\d+$/.test(version)) {
+      setErr("Version must follow semantic versioning format (e.g., 0.1.0)");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const token = typeof window !== "undefined" ? window.localStorage.getItem("oas_token") : null;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const r = await fetch(`/api/datasets/${datasetId}/versions/init`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          version,
+          license: { spdx: licenseSpdx },
+          notes: notes || null,
+        }),
+      });
+
+      if (!r.ok) {
+        const text = await r.text();
+        throw new Error(`${r.status} ${r.statusText}: ${text}`);
+      }
+
+      const newVersion = await r.json();
+      onCreated(newVersion);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold text-accent mb-1 flex items-center gap-2">
+          <span>🚀</span> Initialize Dataset Version
+        </h3>
+        <p className="text-xs text-muted">
+          Every custom dataset needs an active version manifest to begin collecting and preparing samples. Initialize your first version (e.g., <code className="font-mono text-accent">0.1.0</code>) below.
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-muted">Version</label>
+            <input
+              type="text"
+              className="w-full bg-bg border border-border rounded-md px-3 py-2 text-sm font-mono text-accent focus:outline-none focus:border-accent"
+              value={version}
+              onChange={(e) => setVersion(e.target.value)}
+              pattern="\d+\.\d+\.\d+"
+              required
+              placeholder="e.g. 0.1.0"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-muted">Default License (SPDX)</label>
+            <input
+              type="text"
+              className="w-full bg-bg border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-accent"
+              value={licenseSpdx}
+              onChange={(e) => setLicenseSpdx(e.target.value)}
+              required
+              placeholder="e.g. CC-BY-4.0"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-muted">Notes / Version Description</label>
+          <textarea
+            rows={2}
+            className="w-full bg-bg border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:border-accent"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Describe what is in this version..."
+          />
+        </div>
+
+        {err && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md">
+            <p className="text-red-400 text-xs leading-relaxed font-mono">{err}</p>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-2">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="px-4 py-2 bg-accent text-white rounded-md text-sm font-medium transition duration-150 disabled:opacity-50 flex items-center gap-2"
+          >
+            {submitting ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Initializing...
+              </>
+            ) : (
+              "Initialize version 0.1.0"
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 
 function BuildSection({
   datasetId,
@@ -220,14 +375,11 @@ function BuildSection({
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
           >
-            <option value="en">🇺🇸 English (en)</option>
-            <option value="hi">🇮🇳 Hindi (hi / हिंदी)</option>
-            <option value="es">🇪🇸 Spanish (es)</option>
-            <option value="fr">🇫🇷 French (fr)</option>
-            <option value="de">🇩🇪 German (de)</option>
-            <option value="zh">🇨🇳 Chinese (zh)</option>
-            <option value="bn">🇮🇳 Bengali (bn / বাংলা)</option>
-            <option value="ta">🇮🇳 Tamil (ta / தமிழ்)</option>
+            {LANGUAGES.map((l) => (
+              <option key={l.value} value={l.value}>
+                {l.label} ({l.value})
+              </option>
+            ))}
           </select>
         </Field>
         <Field label="Or Custom ISO Code">

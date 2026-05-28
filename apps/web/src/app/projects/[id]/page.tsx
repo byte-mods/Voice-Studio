@@ -36,8 +36,9 @@ function getAuth(): Record<string, string> {
   return t ? { authorization: `Bearer ${t}` } : {};
 }
 
-export default function ProjectDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function ProjectDetail({ params }: { params: any }) {
+  const resolvedParams = params && typeof params.then === "function" ? use(params) : params;
+  const { id } = resolvedParams;
   const proj = useSWR<Project>(["proj", id], () => jget<Project>(`/projects/${id}`));
   const members = useSWR<Member[]>(["members", id], () =>
     jget<Member[]>(`/auth/projects/${id}/members`),

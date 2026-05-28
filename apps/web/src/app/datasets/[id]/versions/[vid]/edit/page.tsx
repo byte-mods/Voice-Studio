@@ -25,9 +25,10 @@ async function jget<T>(p: string): Promise<T> {
 export default function SampleEditorPage({
   params,
 }: {
-  params: Promise<{ id: string; vid: string }>;
+  params: any;
 }) {
-  const { id, vid } = use(params);
+  const resolvedParams = params && typeof params.then === "function" ? use(params) : params;
+  const { id, vid } = resolvedParams;
   const [offset, setOffset] = useState(0);
   const limit = 1;
   const { data, isLoading, mutate } = useSWR<{ total: number; items: Sample[] }>(

@@ -28,15 +28,15 @@ const BASE_MODELS = [
 
 export default function S2SFineTune() {
   const router = useRouter();
-  const datasets = useSWR("datasets-s2s", () => api.datasets.list(undefined, "s2s"));
+  const datasets = useSWR("datasets-s2s", () => api.datasets.list(undefined));
   const [datasetId, setDatasetId] = useState("");
   const versions = useSWR<DatasetVersion[]>(
     datasetId ? ["versions-s2s", datasetId] : null,
     () => jget<DatasetVersion[]>(`/datasets/${datasetId}/versions`),
   );
 
-  // Active dashboard tab: "tune" (Form) or "arena" (Harness comparison)
-  const [activeTab, setActiveTab] = useState<"tune" | "arena">("tune");
+  // Active dashboard tab: "tune" (Form), "arena" (Harness comparison), or "tutorial" (Dataset Creation Guides)
+  const [activeTab, setActiveTab] = useState<"tune" | "arena" | "tutorial">("tune");
 
   // Fine-tuning configuration state
   const [form, setForm] = useState({
@@ -83,6 +83,24 @@ export default function S2SFineTune() {
   const dataset = useMemo(
     () => datasets.data?.find((d) => d.id === datasetId),
     [datasets.data, datasetId],
+  );
+
+  const registeredModels = useSWR(
+    dataset ? ["registered-models-s2s", dataset.project_id] : null,
+    async ([, pid]) => {
+      const list = await api.models.list(pid as string, "s2s");
+      const modelsWithVersions = await Promise.all(
+        list.map(async (m) => {
+          try {
+            const versions = await api.models.listVersions(m.id);
+            return { ...m, versions };
+          } catch {
+            return { ...m, versions: [] };
+          }
+        })
+      );
+      return modelsWithVersions;
+    }
   );
 
   async function submit(e: React.FormEvent) {
@@ -160,7 +178,7 @@ export default function S2SFineTune() {
         title="S2S native fine-tune"
         subtitle="Fine-tune multimodal audio-LMs on conversation datasets and audit comparative latency gains."
         actions={
-          <div className="flex bg-black/30 border border-border/40 rounded p-0.5 text-xs font-mono">
+          <div className="flex bg-black/30 border border-border/40 rounded p-0.5 text-xs font-mono gap-1">
             <button
               onClick={() => setActiveTab("tune")}
               className={`px-3 py-1 rounded transition ${activeTab === "tune" ? "bg-accent text-white" : "text-muted hover:text-fg"}`}
@@ -173,6 +191,12 @@ export default function S2SFineTune() {
             >
               🏆 Pipeline vs. Native Arena
             </button>
+            <button
+              onClick={() => setActiveTab("tutorial")}
+              className={`px-3 py-1 rounded transition ${activeTab === "tutorial" ? "bg-accent text-white" : "text-muted hover:text-fg"}`}
+            >
+              📖 Dataset Guides
+            </button>
           </div>
         }
       />
@@ -182,7 +206,7 @@ export default function S2SFineTune() {
           <form onSubmit={submit} className="md:col-span-2 space-y-3">
             <Card>
               <CardTitle>Data Settings</CardTitle>
-              <Field label="Dataset (S2S only)">
+              <Field label="Dataset (ASR, TTS, LLM, or S2S)">
                 <select
                   className="input"
                   value={datasetId}
@@ -222,6 +246,13 @@ export default function S2SFineTune() {
               <Field label="Base audio-LM model ID">
                 <select className="input" value={form.base_model} onChange={(e) => setForm({ ...form, base_model: e.target.value })}>
                   {BASE_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}
+                  {registeredModels.data?.map((m) =>
+                    m.versions.map((v: any) => (
+                      <option key={v.id} value={v.artifact_uri}>
+                        [Local Registry] {m.name} (v{v.version})
+                      </option>
+                    ))
+                  )}
                 </select>
               </Field>
 
@@ -361,7 +392,7 @@ export default function S2SFineTune() {
             </p>
           </Card>
         </div>
-      ) : (
+      ) : activeTab === "arena" ? (
         /* Tab: S2S Comparison Harness Dashboard */
         <div className="space-y-4 animate-fade-in">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -728,6 +759,120 @@ export default function S2SFineTune() {
                     Select a waveform and click &apos;Analyze Spectral Loss&apos; to compile quantizer codebooks heatmaps.
                   </div>
                 )}
+              </div>
+            </div>
+          </Card>
+        </div>
+      ) : (
+        /* Tab: S2S Tutorial / Dataset Creation Guides */
+        <div className="space-y-6 animate-fade-in text-fg pb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="border border-cyan-500/30 bg-cyan-950/10">
+              <CardTitle className="text-cyan-400 flex items-center gap-1.5 text-base">
+                🎙️ ASR (Speech Recognition) Dataset Specification
+              </CardTitle>
+              <p className="text-xs text-muted mb-3 leading-relaxed">
+                ASR models learn to transcribe acoustic waves into text. For high-fidelity training (e.g. Whisper):
+              </p>
+              <ul className="text-xs text-muted/90 list-disc list-inside space-y-1.5 leading-normal">
+                <li><strong className="text-cyan-300">Format</strong>: WAV files, mono channel, 16,000Hz sampling rate.</li>
+                <li><strong className="text-cyan-300">Normalization</strong>: Transcripts should have punctuation and standard formatting (or raw clean text for robust acoustic matching).</li>
+                <li><strong className="text-cyan-300">Diversity</strong>: Include various speaker accents, environments, and background SNR.</li>
+              </ul>
+              <div className="mt-4 p-2.5 bg-black/40 rounded border border-border/20 font-mono text-[10px] text-muted">
+                <span className="text-cyan-400 block mb-1">// Hindi/English Codec Sample JSON Manifest turn:</span>
+                {"{"}<br />
+                &nbsp;&nbsp;&quot;audio&quot;: {"{ &quot;uri&quot;: &quot;file://raw_data/audio_01.wav&quot;, &quot;sample_rate&quot;: 16000 }"},<br />
+                &nbsp;&nbsp;&quot;transcript&quot;: &quot;नमस्ते, आप कैसे हैं?&quot; // Hindi / Hinglish transcript<br />
+                {"}"}
+              </div>
+            </Card>
+
+            <Card className="border border-purple-500/30 bg-purple-950/10">
+              <CardTitle className="text-purple-400 flex items-center gap-1.5 text-base">
+                🗣️ TTS (Speech Synthesis) Dataset Specification
+              </CardTitle>
+              <p className="text-xs text-muted mb-3 leading-relaxed">
+                TTS models learn to clone voices and synthesize speech. Crucial details (e.g. XTTS Coqui):
+              </p>
+              <ul className="text-xs text-muted/90 list-disc list-inside space-y-1.5 leading-normal">
+                <li><strong className="text-purple-300">Format</strong>: 22,050Hz or 44,100Hz high-resolution WAV files, mono channel.</li>
+                <li><strong className="text-purple-300">Acoustic Cleanliness</strong>: Noise-free, dry studio recordings with zero room reverb.</li>
+                <li><strong className="text-purple-300">Speaker Consent</strong>: Must include a signed vocal consent JSON record in the manifest.</li>
+              </ul>
+              <div className="mt-4 p-2.5 bg-black/40 rounded border border-border/20 font-mono text-[10px] text-muted">
+                <span className="text-purple-400 block mb-1">// TTS Voice Clone Sample Manifest turn:</span>
+                {"{"}<br />
+                &nbsp;&nbsp;&quot;text&quot;: &quot;Welcome to Open Audio Studio.&quot;,<br />
+                &nbsp;&nbsp;&quot;speaker_id&quot;: &quot;speaker_01&quot;,<br />
+                &nbsp;&nbsp;&quot;consent&quot;: {"{ &quot;consent_id&quot;: &quot;c_92a1&quot;, &quot;granted_at&quot;: &quot;2026-05-28T22:30:00Z&quot; }"}<br />
+                {"}"}
+              </div>
+            </Card>
+
+            <Card className="border border-emerald-500/30 bg-emerald-950/10">
+              <CardTitle className="text-emerald-400 flex items-center gap-1.5 text-base">
+                🤖 LLM (Text Generation) Chat Dataset Specification
+              </CardTitle>
+              <p className="text-xs text-muted mb-3 leading-relaxed">
+                LLM models learn dialog flows, system formatting, and tool execution (e.g. Qwen2.5-Instruct):
+              </p>
+              <ul className="text-xs text-muted/90 list-disc list-inside space-y-1.5 leading-normal">
+                <li><strong className="text-emerald-300">Format</strong>: Multi-turn messages list with alternate system, user, and assistant turns.</li>
+                <li><strong className="text-emerald-300">System Prompt</strong>: Dictates behavior guidelines (e.g. briefly answering with natural spoken style).</li>
+                <li><strong className="text-emerald-300">Tool Schema</strong>: JSON Schema declaration array for function calling.</li>
+              </ul>
+              <div className="mt-4 p-2.5 bg-black/40 rounded border border-border/20 font-mono text-[10px] text-muted">
+                <span className="text-emerald-400 block mb-1">// LLM Multi-Turn Chat Sample JSON Manifest:</span>
+                {"{"}<br />
+                &nbsp;&nbsp;&quot;turns&quot;: [<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;{"{ &quot;role&quot;: &quot;user&quot;, &quot;text&quot;: &quot;What is the current temperature in Delhi?&quot; }"},<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;{"{ &quot;role&quot;: &quot;assistant&quot;, &quot;text&quot;: &quot;Let me look up the weather for Delhi...&quot; }"}<br />
+                &nbsp;&nbsp;]<br />
+                {"}"}
+              </div>
+            </Card>
+
+            <Card className="border border-pink-500/30 bg-pink-950/10">
+              <CardTitle className="text-pink-400 flex items-center gap-1.5 text-base">
+                🌌 Speech-to-Speech (Qwen-Omni) Dataset Specification
+              </CardTitle>
+              <p className="text-xs text-muted mb-3 leading-relaxed">
+                Multimodal S2S models learn dual-stream audio token input/outputs directly (e.g. Qwen2.5-Omni):
+              </p>
+              <ul className="text-xs text-muted/90 list-disc list-inside space-y-1.5 leading-normal">
+                <li><strong className="text-pink-300">Dual Audio Streams</strong>: User speech audio prompts paired directly with assistant vocal outputs.</li>
+                <li><strong className="text-pink-300">Latency Guidelines</strong>: Short turns are preferred (under 15s) to avoid context window padding.</li>
+                <li><strong className="text-pink-300">Multilingual</strong>: In Hindi, English, Spanish etc.</li>
+              </ul>
+              <div className="mt-4 p-2.5 bg-black/40 rounded border border-border/20 font-mono text-[10px] text-muted">
+                <span className="text-pink-400 block mb-1">// S2S Multimodal Native Dialog Sample Manifest:</span>
+                {"{"}<br />
+                &nbsp;&nbsp;&quot;turns&quot;: [<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;{"{ &quot;role&quot;: &quot;user&quot;, &quot;text&quot;: &quot;सुनो, एक चुटकुला सुनाओ।&quot;, &quot;audio&quot;: { &quot;uri&quot;: &quot;...&quot; } }"},<br />
+                &nbsp;&nbsp;&nbsp;&nbsp;{"{ &quot;role&quot;: &quot;assistant&quot;, &quot;text&quot;: &quot;बिल्कुल! दो दोस्त आपस में...&quot;, &quot;audio&quot;: { &quot;uri&quot;: &quot;...&quot; } }"}<br />
+                &nbsp;&nbsp;]<br />
+                {"}"}
+              </div>
+            </Card>
+          </div>
+
+          <Card className="border border-border/40 bg-glass/60 p-5 mt-4">
+            <CardTitle className="text-accent flex items-center gap-2">
+              🛠️ How to Create & Export Datasets Directly from the UI
+            </CardTitle>
+            <div className="space-y-4 text-xs text-muted/90 leading-relaxed pt-2">
+              <div>
+                <strong className="text-fg block text-sm mb-1">1. Initialize a Dataset Container</strong>
+                Go to the <Link href="/datasets" className="text-accent hover:underline">Datasets</Link> page, click <strong className="text-fg">New dataset</strong>, pick your modality (ASR, TTS, LLM, or S2S), give it a slug name, and click create.
+              </div>
+              <div>
+                <strong className="text-fg block text-sm mb-1">2. Use the Interactive Builders to Append Samples</strong>
+                Once initialized, click <strong className="text-fg">Add samples</strong> inside the dataset page. The studio provides visual, modality-specific form builders where you can record audio using your mic, upload clips, type transcripts, configure system guidelines, and append data samples instantly.
+              </div>
+              <div>
+                <strong className="text-fg block text-sm mb-1">3. Generate Synthetic Data in LLM Builder</strong>
+                The LLM builder supports synthetic data generation! Paste a serving model version ID, choose a base model, configure prompts, and automatically synthesize N high-quality conversations with one click.
               </div>
             </div>
           </Card>

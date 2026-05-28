@@ -7,6 +7,7 @@ import { api, type Dataset, type Project } from "@/lib/api";
 import { PageHeader } from "@/components/PageHeader";
 import { Card } from "@/components/Card";
 import { relativeTime } from "@/lib/utils";
+import { LANGUAGES } from "@/lib/languages";
 
 export default function DatasetsPage() {
   const projects = useSWR("projects", () => api.projects.list());
@@ -201,14 +202,11 @@ function HFImportModal({
               value={form.language}
               onChange={(e) => setForm({ ...form, language: e.target.value })}
             >
-              <option value="en">🇺🇸 English (en)</option>
-              <option value="hi">🇮🇳 Hindi (hi / हिंदी)</option>
-              <option value="es">🇪🇸 Spanish (es)</option>
-              <option value="fr">🇫🇷 French (fr)</option>
-              <option value="de">🇩🇪 German (de)</option>
-              <option value="zh">🇨🇳 Chinese (zh)</option>
-              <option value="bn">🇮🇳 Bengali (bn / বাংলা)</option>
-              <option value="ta">🇮🇳 Tamil (ta / தமிழ்)</option>
+              {LANGUAGES.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label} ({l.value})
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="Or Custom ISO Code">

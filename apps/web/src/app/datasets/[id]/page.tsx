@@ -210,12 +210,28 @@ function BuildSection({
 
       <AudioUploader onUploaded={(rs) => setUploads((prev) => [...prev, ...rs])} />
 
-      <div className="grid grid-cols-4 gap-3 mt-4 text-sm">
+      <div className="grid grid-cols-5 gap-3 mt-4 text-sm">
         <Field label="Version">
           <input className="input" pattern="\d+\.\d+\.\d+" value={version} onChange={(e) => setVersion(e.target.value)} />
         </Field>
-        <Field label="Language">
-          <input className="input" value={language} onChange={(e) => setLanguage(e.target.value)} />
+        <Field label="Preset Language">
+          <select
+            className="input"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+          >
+            <option value="en">🇺🇸 English (en)</option>
+            <option value="hi">🇮🇳 Hindi (hi / हिंदी)</option>
+            <option value="es">🇪🇸 Spanish (es)</option>
+            <option value="fr">🇫🇷 French (fr)</option>
+            <option value="de">🇩🇪 German (de)</option>
+            <option value="zh">🇨🇳 Chinese (zh)</option>
+            <option value="bn">🇮🇳 Bengali (bn / বাংলা)</option>
+            <option value="ta">🇮🇳 Tamil (ta / தமிழ்)</option>
+          </select>
+        </Field>
+        <Field label="Or Custom ISO Code">
+          <input className="input" placeholder="e.g. hi-IN, mr" value={language} onChange={(e) => setLanguage(e.target.value)} />
         </Field>
         <Field label="Whisper bootstrap model">
           <select className="input" value={whisperModel} onChange={(e) => setWhisperModel(e.target.value)}>

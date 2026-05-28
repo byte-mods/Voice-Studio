@@ -195,12 +195,31 @@ function HFImportModal({
         </Row>
 
         <Row>
-          <Field label="Language">
-            <input className="input" value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })} />
+          <Field label="Preset Language">
+            <select
+              className="input"
+              value={form.language}
+              onChange={(e) => setForm({ ...form, language: e.target.value })}
+            >
+              <option value="en">🇺🇸 English (en)</option>
+              <option value="hi">🇮🇳 Hindi (hi / हिंदी)</option>
+              <option value="es">🇪🇸 Spanish (es)</option>
+              <option value="fr">🇫🇷 French (fr)</option>
+              <option value="de">🇩🇪 German (de)</option>
+              <option value="zh">🇨🇳 Chinese (zh)</option>
+              <option value="bn">🇮🇳 Bengali (bn / বাংলা)</option>
+              <option value="ta">🇮🇳 Tamil (ta / தமிழ்)</option>
+            </select>
           </Field>
+          <Field label="Or Custom ISO Code">
+            <input className="input" placeholder="e.g. hi-IN, mr" value={form.language} onChange={(e) => setForm({ ...form, language: e.target.value })} />
+          </Field>
+        </Row>
+        <Row>
           <Field label="License (SPDX)">
             <input className="input" value={form.license_spdx} onChange={(e) => setForm({ ...form, license_spdx: e.target.value })} />
           </Field>
+          <div />
         </Row>
 
         <div className="text-xs uppercase tracking-wide text-muted pt-2">Field mapping</div>

@@ -142,9 +142,25 @@ export default function S2SBuilder({ params }: { params: Promise<{ id: string }>
 
           <Card>
             <CardTitle>Conversation metadata</CardTitle>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Language">
-                <input className="input" value={language} onChange={(e) => setLanguage(e.target.value)} />
+            <div className="grid grid-cols-3 gap-3">
+              <Field label="Preset Language">
+                <select
+                  className="input"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                >
+                  <option value="en">🇺🇸 English (en)</option>
+                  <option value="hi">🇮🇳 Hindi (hi / हिंदी)</option>
+                  <option value="es">🇪🇸 Spanish (es)</option>
+                  <option value="fr">🇫🇷 French (fr)</option>
+                  <option value="de">🇩🇪 German (de)</option>
+                  <option value="zh">🇨🇳 Chinese (zh)</option>
+                  <option value="bn">🇮🇳 Bengali (bn / বাংলা)</option>
+                  <option value="ta">🇮🇳 Tamil (ta / தமிழ்)</option>
+                </select>
+              </Field>
+              <Field label="Or Custom ISO Code (e.g. mr, te, hi-IN)">
+                <input className="input" placeholder="e.g. hi-IN, mr" value={language} onChange={(e) => setLanguage(e.target.value)} />
               </Field>
               <Field label="License (SPDX)">
                 <input className="input" value={licenseSpdx} onChange={(e) => setLicenseSpdx(e.target.value)} />

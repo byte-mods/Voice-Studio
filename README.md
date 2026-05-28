@@ -18,7 +18,8 @@ Open Audio Studio delivers the functionality of **Hugging Face AutoTrain + Weigh
 * **🎙️ ASR Studio (Speech-to-Text)**: Train and fine-tune Whisper, wav2vec2, and Conformer weights. Incorporates interactive audio augmentation tools (noise injection, room impulse responses, speed perturbations) and Word Error Rate (WER/CER) evaluation dashboards.
 * **🧠 LLM Studio (Language Modeling)**: Autoregressively train language adapters on conversation transcripts. Optimize spoken fill-in tokens and turn-taking dialogue behaviors.
 * **🔊 TTS Studio (Text-to-Speech)**: Synthesize speech from text inputs. Leverage high-fidelity acoustic encoders, flow-matching Integration synthesizers, and HiFi-GAN upsampling vocoders.
-* **🔄 Speech-to-Speech (S2S) Studio**: Deploy duplex spoken agents bypassing separate cascade decodes. Seamlessly train Native Audio-LMs (such as Qwen2.5-Omni, LLaMA-Omni, or GLM-4-Voice) with overlap attention masking (for user barge-ins) and voice style preservation (ECAPA-TDNN speaker similarity matching).
+* **🔄 Speech-to-Speech (S2S) Studio**: Deploy duplex spoken agents bypassing separate cascade decodes. Seamlessly train and run Native Audio-LMs (such as Qwen2.5-Omni, LLaMA-Omni, or GLM-4-Voice) with overlap attention masking (for user barge-ins) and consistent vocal replies using preset & custom **Voice/Speaker Configurations** (like `Ethan` and `Chelsie` for Qwen-Omni).
+* **📋 Multi-Language Prompt Dictionary**: Accelerate speech data collection using a pre-populated repository of 120+ phonetically rich prompt sentences in English, हिन्दी (Hindi), and Hinglish (Code-Mixed) with auto-populating emotional metadata tags (`cheerful`, `calm`, `excited`, `concerned`, `neutral`).
 * **🏗️ Architecture Lab**: An IDE for writing custom PyTorch and JAX tensor operations. Compile custom **Triton / CUDA / Pallas kernels**, verify numerical correctness against reference implementations, and autotune GPU performance grid shapes.
 * **📦 Workspace & Templates Hub**: Access pre-loaded, copy-pasteable JSON recipes and guides to train, fine-tune, or compile models across all modalities from scratch.
 
@@ -142,6 +143,48 @@ To prototype a custom Spoken LLM:
    ```
 3. Click **Verify & Graph spec**. The compiler will parse the JSON, benchmark the GFLOPS timing curves, and output an interactive block flowchart rendering all 12 causal layers.
 4. Click **Register Model** to save the architecture layout to the registry, ready for custom training runs.
+
+---
+
+---
+
+## 🛠️ Libraries Used & Communities
+
+Open Audio Studio stands proud on the shoulders of the open-source speech, machine learning, and compiler engineering ecosystems:
+
+### 📦 Key Libraries & Frameworks
+
+* **Frontend Web Application**:
+  - **Framework**: [Next.js 14](https://nextjs.org/) (App Router, Server Components) & [React 18](https://react.dev/)
+  - **Styling**: Premium [Vanilla CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) and Glassmorphic HSL Design System
+  - **State & Sync**: [SWR Hook client](https://swr.vercel.app/) for reactive UI data mutation
+  - **Audio capture**: HTML5 MediaRecorder and Audio Stream Web APIs
+
+* **FastAPI Server & DB Core**:
+  - **Framework**: [FastAPI](https://fastapi.tiangolo.com/) with [Uvicorn](https://www.uvicorn.org/) ASGI servers
+  - **Database & ORM**: [SQLAlchemy 2.0](https://www.sqlalchemy.org/) & [SQLite](https://www.sqlite.org/) with optimized WAL journaling
+  - **Migrations**: [Alembic](https://alembic.sqlalchemy.org/en/latest/) schema revisioning
+  - **Serialization**: [Pydantic v2](https://docs.pydantic.dev/latest/) models and validation
+
+* **Machine Learning, Audio Codec & Speech Suite**:
+  - **Computing core**: [PyTorch Ecosystem](https://pytorch.org/) & [ONNX Runtime](https://onnxruntime.ai/)
+  - **Transformers & Registry**: [Hugging Face Transformers](https://huggingface.co/docs/transformers) & [huggingface_hub API client](https://huggingface.co/docs/huggingface_hub)
+  - **Parameter-efficient adapters**: [PEFT](https://github.com/huggingface/peft) (LoRA, Prefix Tuning)
+  - **ASR Decoding**: [faster-whisper](https://github.com/SYSTRAN/faster-whisper) (CTranslate2 backend)
+  - **TTS Synthesis**: [Piper Speech](https://github.com/rhasspy/piper) (ONNX local voice generation), [Bark](https://github.com/suno-ai/bark) (expressive text-to-audio transformers), and **XTTS-v2** pipelines
+  - **Signal Processing**: [Librosa](https://librosa.org/) & [SoundFile](https://pysoundfile.readthedocs.io/)
+
+---
+
+## ❤️ Special Thanks & Communities
+
+We express our deepest gratitude to the incredible open-source research and engineering communities whose shared weights, training scripts, and foundational packages make offline spoken AI tools like Open Audio Studio possible:
+
+* **The Hugging Face Hub Community**: For cultivating a world-class model catalog, documentation, and tooling that enables seamless model discoveries, downloads, and fine-tuning.
+* **The Alibaba Qwen Team**: For their pioneering work in building `Qwen2.5-Omni` and `Qwen2-Audio` models, moving native audio-text speech systems out of research labs and into accessible, edge-deployable open-source systems.
+* **The rhasspy Piper/Nabu TTS Community**: For engineering extremely fast, local, and phonetically robust VITS-based text-to-speech engines that perform outstandingly even on consumer hardware.
+* **The Coqui AI & Suno Bark Communities**: For driving creative, expressive, and zero-shot voice cloning capabilities forward with highly scalable audio-tokens transformers.
+* **The PyTorch, Triton Compiler, & JAX Pallas Communities**: For providing modern AI compilers that empower researchers to compile, test, and autotune custom GPU tensor operations.
 
 ---
 

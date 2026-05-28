@@ -176,9 +176,10 @@ class _LLM:
 
 
 class _TTS:
-    def __init__(self, uri: str, fmt: str) -> None:
+    def __init__(self, uri: str, fmt: str, voice_name: str | None = None) -> None:
         self._piper = None
         self._hf = None
+        self.voice_name = voice_name
         target_path = uri.removeprefix("file://")
 
         if fmt == "piper-onnx":
@@ -187,7 +188,16 @@ class _TTS:
             from piper import PiperVoice
 
             voice_dir = Path(target_path)
-            onnx = next(voice_dir.glob("*.onnx"))
+            onnx = None
+            if voice_name:
+                matches = list(voice_dir.glob(f"*{voice_name}*.onnx"))
+                if matches:
+                    onnx = matches[0]
+            if not onnx:
+                try:
+                    onnx = next(voice_dir.glob("*.onnx"))
+                except StopIteration:
+                    raise ValueError(f"No .onnx files found in {voice_dir}")
             self._piper = PiperVoice.load(str(onnx))
         else:
             from transformers import pipeline
@@ -207,7 +217,17 @@ class _TTS:
             return data.astype(np.float32), int(sr)
 
         assert self._hf is not None
-        out = self._hf(text)
+        gen_kwargs = {}
+        if self.voice_name:
+            model_path = str(getattr(self._hf.model, "name_or_path", "")).lower()
+            if "bark" in model_path:
+                gen_kwargs = {"forward_params": {"voice_preset": self.voice_name}}
+            else:
+                gen_kwargs = {"forward_params": {"speaker": self.voice_name}}
+        try:
+            out = self._hf(text, **gen_kwargs)
+        except TypeError:
+            out = self._hf(text)
         audio = np.asarray(out["audio"], dtype=np.float32).squeeze()
         return audio, int(out["sampling_rate"])
 
@@ -305,7 +325,7 @@ class S2SSession:
             self._llm = _LLM(self.cfg.llm_uri, self.cfg.llm_format)
         if self._tts is None:
             log.info("loading TTS: %s", self.cfg.tts_uri)
-            self._tts = _TTS(self.cfg.tts_uri, self.cfg.tts_format)
+            self._tts = _TTS(self.cfg.tts_uri, self.cfg.tts_format, voice_name=self.cfg.runtime.get("voice_name"))
 
     # ---- inbound from WS ----
 

@@ -113,6 +113,7 @@ function CreatePipelineModal({
   const ttsModels = useSWR(projectId ? ["m-tts", projectId] : null, () => api.models.list(projectId, "tts"));
 
   const [mode, setMode] = useState<"pipeline" | "native">("pipeline");
+  const [voicePreset, setVoicePreset] = useState<string>("Ethan");
   const [form, setForm] = useState({
     slug: "",
     name: "",
@@ -123,6 +124,7 @@ function CreatePipelineModal({
     llm_fallback: "Qwen/Qwen2.5-0.5B-Instruct",
     tts_fallback: "facebook/mms-tts-eng",
     system_prompt: "You are a helpful spoken assistant. Keep replies brief and natural.",
+    voice_name: "Ethan",
   });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -150,7 +152,7 @@ function CreatePipelineModal({
         tts_fallback: form.tts_fallback || null,
         system_prompt: form.system_prompt,
         vad_config: {},
-        runtime_config: { mode },
+        runtime_config: { mode, voice_name: form.voice_name || null },
       };
       const r = await fetch("/api/s2s/pipelines", {
         method: "POST",
@@ -242,6 +244,53 @@ function CreatePipelineModal({
           loadVersions={versionOptions}
           fallbackHint="facebook/mms-tts-eng"
         />
+
+        <div className="border border-border rounded-md p-3">
+          <div className="text-xs uppercase tracking-wide text-muted mb-2">Voice & Speaker Configuration</div>
+          <Row>
+            <Field label="Voice Preset">
+              <select
+                className="input"
+                value={voicePreset}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setVoicePreset(val);
+                  if (val !== "custom") {
+                    setForm({ ...form, voice_name: val });
+                  } else {
+                    setForm({ ...form, voice_name: "" });
+                  }
+                }}
+              >
+                <option value="Ethan">Ethan (Qwen-Omni Male)</option>
+                <option value="Chelsie">Chelsie (Qwen-Omni Female)</option>
+                <option value="en_US-lessac-medium">en_US-lessac-medium (Piper Female)</option>
+                <option value="en_US-joe-medium">en_US-joe-medium (Piper Male)</option>
+                <option value="custom">Custom...</option>
+              </select>
+            </Field>
+            {voicePreset === "custom" ? (
+              <>
+                <Field label="Custom Voice / Speaker ID">
+                  <input
+                    className="input"
+                    value={form.voice_name}
+                    onChange={(e) => setForm({ ...form, voice_name: e.target.value })}
+                    placeholder="e.g. bark/en_speaker_0"
+                    required
+                  />
+                </Field>
+                <div />
+              </>
+            ) : (
+              <div className="col-span-2 flex items-center pl-2 pt-4">
+                <span className="text-xs text-muted">
+                  Active speaker: <code className="text-accent bg-card px-1.5 py-0.5 rounded border border-border">{form.voice_name || "None"}</code>
+                </span>
+              </div>
+            )}
+          </Row>
+        </div>
 
         <Field label="System prompt">
           <textarea

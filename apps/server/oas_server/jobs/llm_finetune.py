@@ -215,6 +215,9 @@ def llm_finetune_handler(ctx: JobContext) -> dict[str, Any]:
     )
     from trl import SFTConfig, SFTTrainer
 
+    if base_model.startswith("file://"):
+        base_model = base_model[7:]
+
     ctx.log(f"loading tokenizer + model: {base_model}")
     tokenizer = AutoTokenizer.from_pretrained(base_model, use_fast=True)
     if tokenizer.pad_token is None:

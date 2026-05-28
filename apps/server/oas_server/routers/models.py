@@ -157,6 +157,64 @@ def publish_version_endpoint(
     return _v_out(v)
 
 
+class HFModelSearchResult(BaseModel):
+    id: str
+    downloads: int
+    likes: int
+    pipeline_tag: str | None
+    tags: list[str]
+    last_modified: str | None
+
+
+@router.get("/hf/search", response_model=list[HFModelSearchResult])
+def search_hf_models(
+    query: str | None = None,
+    modality: Modality | None = None,
+) -> list[HFModelSearchResult]:
+    from huggingface_hub import HfApi
+
+    api = HfApi()
+    filter_tag = None
+    if modality:
+        if modality == Modality.ASR:
+            filter_tag = "automatic-speech-recognition"
+        elif modality == Modality.TTS:
+            filter_tag = "text-to-speech"
+        elif modality == Modality.LLM:
+            filter_tag = "text-generation"
+        elif modality == Modality.S2S:
+            # S2S can be audio-to-audio
+            filter_tag = "audio-to-audio"
+
+    try:
+        models = api.list_models(
+            search=query or None,
+            filter=filter_tag,
+            sort="downloads",
+            direction=-1,
+            limit=20,
+        )
+
+        results = []
+        for m in models:
+            lm_str = None
+            if getattr(m, "last_modified", None):
+                lm_str = m.last_modified.isoformat() if hasattr(m.last_modified, "isoformat") else str(m.last_modified)
+            results.append(
+                HFModelSearchResult(
+                    id=m.id,
+                    downloads=getattr(m, "downloads", 0) or 0,
+                    likes=getattr(m, "likes", 0) or 0,
+                    pipeline_tag=getattr(m, "pipeline_tag", None),
+                    tags=getattr(m, "tags", []) or [],
+                    last_modified=lm_str,
+                )
+            )
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 class EvalResult(BaseModel):
     job_id: str
     kind: str

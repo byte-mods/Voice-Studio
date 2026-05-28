@@ -1,0 +1,43 @@
+export type LanguageOption = {
+  value: string;
+  label: string;
+};
+
+export const LANGUAGES: LanguageOption[] = [
+  { value: "en-US", label: "English (United States) 🇺🇸" },
+  { value: "en-GB", label: "English (United Kingdom) 🇬🇧" },
+  { value: "en-IN", label: "English (India) 🇮🇳" },
+  { value: "en-AU", label: "English (Australia) 🇦🇺" },
+  { value: "en-CA", label: "English (Canada) 🇨🇦" },
+  { value: "hi-IN", label: "Hindi (India) 🇮🇳" },
+  { value: "hi-en", label: "Hinglish (India) 🇮🇳" },
+  { value: "es-ES", label: "Spanish (Spain) 🇪🇸" },
+  { value: "es-MX", label: "Spanish (Mexico) 🇲🇽" },
+  { value: "es-US", label: "Spanish (United States) 🇺🇸" },
+  { value: "fr-FR", label: "French (France) 🇫🇷" },
+  { value: "fr-CA", label: "French (Canada) 🇨🇦" },
+  { value: "de-DE", label: "German (Germany) 🇩🇪" },
+  { value: "de-CH", label: "German (Switzerland) 🇨🇭" },
+  { value: "zh-CN", label: "Chinese (China) 🇨🇳" },
+  { value: "zh-TW", label: "Chinese (Taiwan) 🇹🇼" },
+  { value: "bn-IN", label: "Bengali (India) 🇮🇳" },
+  { value: "bn-BD", label: "Bengali (Bangladesh) 🇧🇩" },
+  { value: "ta-IN", label: "Tamil (India) 🇮🇳" },
+  { value: "ta-LK", label: "Tamil (Sri Lanka) 🇱🇰" },
+  { value: "te-IN", label: "Telugu (India) 🇮🇳" },
+  { value: "mr-IN", label: "Marathi (India) 🇮🇳" },
+  { value: "gu-IN", label: "Gujarati (India) 🇮🇳" },
+  { value: "kn-IN", label: "Kannada (India) 🇮🇳" },
+  { value: "ur-PK", label: "Urdu (Pakistan) 🇵🇰" },
+  { value: "ur-IN", label: "Urdu (India) 🇮🇳" },
+  { value: "ar-AE", label: "Arabic (UAE) 🇦🇪" },
+  { value: "ar-SA", label: "Arabic (Saudi Arabia) 🇸🇦" },
+  { value: "ar-EG", label: "Arabic (Egypt) 🇪🇬" },
+  { value: "ja-JP", label: "Japanese (Japan) 🇯🇵" },
+  { value: "ko-KR", label: "Korean (South Korea) 🇰🇷" },
+  { value: "ru-RU", label: "Russian (Russia) 🇷🇺" },
+  { value: "pt-BR", label: "Portuguese (Brazil) 🇧🇷" },
+  { value: "pt-PT", label: "Portuguese (Portugal) 🇵🇹" },
+  { value: "it-IT", label: "Italian (Italy) 🇮🇹" },
+  { value: "tr-TR", label: "Turkish (Turkey) 🇹🇷" },
+];

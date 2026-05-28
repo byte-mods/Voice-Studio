@@ -39,7 +39,16 @@ from pathlib import Path
 from typing import Any
 
 from oas_core.db import DatasetVersion, session_scope
-from oas_core.manifest import ManifestReader, Modality, S2SSample
+from oas_core.manifest import (
+    ManifestReader,
+    Modality,
+    S2SSample,
+    DialogTurn,
+    ASRSample,
+    TTSSample,
+    LLMSample,
+)
+from oas_core.manifest.schema import Role
 from oas_core.queue.backend import JobContext, register_handler
 from oas_core.registry import publish_version
 
@@ -49,11 +58,46 @@ log = logging.getLogger(__name__)
 def _load_s2s_split(manifest_root: Path, split: str) -> list[S2SSample]:
     out: list[S2SSample] = []
     for s in ManifestReader(manifest_root):
-        if s.modality != Modality.S2S:
-            continue
         if s.split.value != split:
             continue
-        out.append(s)
+        if s.modality == Modality.S2S:
+            out.append(s)
+        elif s.modality == Modality.LLM:
+            s2s = S2SSample(
+                id=s.id,
+                split=s.split,
+                language=s.language,
+                license=s.license,
+                consent=s.consent,
+                turns=s.turns,
+                tools_schema=getattr(s, "tools_schema", []),
+                synthetic=getattr(s, "synthetic", False),
+            )
+            out.append(s2s)
+        elif s.modality == Modality.ASR:
+            turn1 = DialogTurn(role=Role.USER, audio=s.audio)
+            turn2 = DialogTurn(role=Role.ASSISTANT, text=s.transcript)
+            s2s = S2SSample(
+                id=s.id,
+                split=s.split,
+                language=s.language,
+                license=s.license,
+                consent=s.consent,
+                turns=[turn1, turn2],
+            )
+            out.append(s2s)
+        elif s.modality == Modality.TTS:
+            turn1 = DialogTurn(role=Role.USER, text=s.text)
+            turn2 = DialogTurn(role=Role.ASSISTANT, audio=s.audio)
+            s2s = S2SSample(
+                id=s.id,
+                split=s.split,
+                language=s.language,
+                license=s.license,
+                consent=s.consent,
+                turns=[turn1, turn2],
+            )
+            out.append(s2s)
     return out
 
 
@@ -161,6 +205,9 @@ def s2s_native_finetune_handler(ctx: JobContext) -> dict[str, Any]:
     ctx.log(f"train={len(train_samples)}  eval={len(eval_samples)}")
     if not train_samples:
         raise ValueError("no S2S train samples in manifest")
+
+    if base_model.startswith("file://"):
+        base_model = base_model[7:]
 
     ctx.log(f"loading multimodal model+processor: {base_model}")
     processor = AutoProcessor.from_pretrained(base_model, trust_remote_code=True)

@@ -73,6 +73,8 @@ def llm_eval_handler(ctx: JobContext) -> dict[str, Any]:
     if fmt == "peft-adapter":
         if not base_model:
             raise ValueError("base_model required to evaluate a peft-adapter")
+        if base_model.startswith("file://"):
+            base_model = base_model[7:]
         from peft import PeftModel
 
         tok = AutoTokenizer.from_pretrained(base_model, use_fast=True)

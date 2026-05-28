@@ -155,7 +155,15 @@ export const api = {
       if (modality) q.set("modality", modality);
       return request<Model[]>(`/models?${q.toString()}`);
     },
-    create: (body: { project_id: string; slug: string; name: string; modality: string }) =>
+    create: (body: { project_id: string; slug: string; name: string; modality: string; family?: string; description?: string }) =>
       request<Model>("/models", { method: "POST", body: JSON.stringify(body) }),
+    listVersions: (modelId: string) =>
+      request<any[]>(`/models/${modelId}/versions`),
+    hfSearch: (query?: string, modality?: string) => {
+      const q = new URLSearchParams();
+      if (query) q.set("query", query);
+      if (modality) q.set("modality", modality);
+      return request<any[]>(`/models/hf/search?${q.toString()}`);
+    },
   },
 };
